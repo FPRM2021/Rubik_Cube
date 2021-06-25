@@ -225,17 +225,17 @@ public:
     float lastFrame = 0.0f;
 
 
-    void movimiento(int sentido, Cube* cubesp_[27], GLFWwindow* window){
+    void movimiento(int sentido, Cube* cubesp_[27], GLFWwindow* window) {
 
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         //utilizar glm para las rotaciones, no necesariamente los shaders
         float signo;
-        if(sentido)
-            signo=1.0;
+        if (sentido)
+            signo = 1.0;
         else
-            signo=-1.0;
+            signo = -1.0;
 
 //        for (int i = 0; i < 9; i++) {
 //                for (int j = 0; j < 24; j = j + 3) {
@@ -251,14 +251,15 @@ public:
 //                }
 //        }
 
-        float vel=9.0;
+        float vel = 9.0;
         glfwSetTime(0.0);
-        float angle=90.0/vel;
-        int count=int(vel);
-        while(count<=90.0f) {
+        float angle = 90.0 / vel;
+        int count = int(vel);
+        while (count <= 90.0f) {
             for (int i = 0; i < 9; i++) {
                 for (int j = 0; j < 24; j = j + 3) {
-                    glm::vec4 vec(camadas[i]->vertices[j], camadas[i]->vertices[j + 1], camadas[i]->vertices[j + 2],1.0f);
+                    glm::vec4 vec(camadas[i]->vertices[j], camadas[i]->vertices[j + 1], camadas[i]->vertices[j + 2],
+                                  1.0f);
                     glm::mat4 trans = glm::mat4(1.0f);
                     glm::vec3 eje(0.0f, 0.0f, 0.0f);
                     eje[ejerotacion[indice]] = 1.0f;
@@ -273,7 +274,7 @@ public:
                 camadas[i]->drawCube();
             }
             glfwSwapBuffers(window);
-            count=count+angle;
+            count = count + angle;
         }
 
 
@@ -286,22 +287,21 @@ public:
 //        z+: anti-horario
 //        z-: horario
 
-        int modIndices[2][9]={
-                {6,3,0,7,4,1,8,5,2,},//horario
-                {2,5,8,1,4,7,0,3,6,}}; //antihorario
+        int modIndices[2][9] = {
+                {6, 3, 0, 7, 4, 1, 8, 5, 2,},//horario
+                {2, 5, 8, 1, 4, 7, 0, 3, 6,}}; //antihorario
 
-        if(indice>2){
-            for(int i=0;i<9;i++){
-                cubesp_[ccv[indice][i]]=camadas[modIndices[sentido][i]];
+        if (indice > 2) {
+            for (int i = 0; i < 9; i++) {
+                cubesp_[ccv[indice][i]] = camadas[modIndices[sentido][i]];
             }
-        }
-        else{
-            if(sentido==1)
-                sentido=0;
+        } else {
+            if (sentido == 1)
+                sentido = 0;
             else
-                sentido=1;
-            for(int i=0;i<9;i++){
-                cubesp_[ccv[indice][i]]=camadas[modIndices[sentido][i]];
+                sentido = 1;
+            for (int i = 0; i < 9; i++) {
+                cubesp_[ccv[indice][i]] = camadas[modIndices[sentido][i]];
             }
         }
     }

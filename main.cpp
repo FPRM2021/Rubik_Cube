@@ -9,7 +9,8 @@
 #include <iostream>
 #include <chrono>
 #include <vector>
-
+#include "AllCube/solve.h"
+#include "AllCube/random.h"
 
 #define PI 3.14159265
 
@@ -17,36 +18,44 @@
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
-
 //camara
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 
-
 // timing
-float deltaTime = 0.0f;	// time between current frame and last frame
+float deltaTime = 0.0f; // time between current frame and last frame
 float lastFrame = 0.0f;
 
 using namespace std;
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+void framebuffer_size_callback(GLFWwindow *window, int width, int height);
+void mouse_callback(GLFWwindow *window, double xpos, double ypos);
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
-void setVerticesCubes(Cube*** cubos_,Cube* cubosp_[27], Cube* cubosID_[27],vector<float> pos_,vector<float> pos1_, GLint uniColor_);
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+void setVerticesCubes(Cube ***cubos_, Cube *cubosp_[27], Cube *cubosID_[27], vector<float> pos_, vector<float> pos1_, GLint uniColor_);
+void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
+void exeanimation(std::vector<std::string> str, GLFWwindow *window);
+void exeanimation(std::string str, GLFWwindow *window);
+void updateCamadas_();
 
-
-GLfloat sizes[2];  // Store supported point size range
-GLfloat step;      // Store supported point size increments
-GLfloat curSize;   // Store current point size
+GLfloat sizes[2]; // Store supported point size range
+GLfloat step;     // Store supported point size increments
+GLfloat curSize;  // Store current point size
 
 Camada camada_[9];
-Cube* cubesID[27];
+Cube *cubesID[27];
 
-bool keyblock=false;
+bool keyblock = false;
+//Para usar el solver:
+//usar las funciones dentro del allcube
+//randomize() para generar un cubo aleatorio
+//get_solution() para resolver un cubo
+
+//solver
+
+std::vector<std::string> movreg;
+std::vector<std::string> solvedCube;
 
 
 int main()
@@ -65,7 +74,7 @@ int main()
 
     // glfw window creation
     // --------------------
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "RubikCube", NULL, NULL);
+    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "RubikCube", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -95,31 +104,33 @@ int main()
     // ------------------------------------
     // vertex shader
 
-Shader shaderProgram("C:/Users/fabri/Documents/Universidad/Computacion_Grafica/Flecha/GLFW_GLAD_GLUT_GLEW_cmake_project/src/Rubik_Cube/vertex.vs",
-                 "C:/Users/fabri/Documents/Universidad/Computacion_Grafica/Flecha/GLFW_GLAD_GLUT_GLEW_cmake_project/src/Rubik_Cube/fragment.fs");
+    Shader shaderProgram("C:/Users/fabri/Documents/Universidad/Computacion_Grafica/Flecha/GLFW_GLAD_GLUT_GLEW_cmake_project/src/rubick-jean-fabrizzio/vertex.vs",
+                         "C:/Users/fabri/Documents/Universidad/Computacion_Grafica/Flecha/GLFW_GLAD_GLUT_GLEW_cmake_project/src/rubick-jean-fabrizzio/fragment.fs");
 
-/////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////
     curSize = sizes[0];
 
     // Get the location of the color uniform
     GLint uniColor = glGetUniformLocation(shaderProgram.ID, "triangleColor");
 
     //inicializacion de cubos
-    Cube*** cubos=  new Cube**[3];
-    Cube* cubep[27];
+    Cube ***cubos = new Cube **[3];
+    Cube *cubep[27];
 
-    for(int i = 0; i < 3; i++)
+    for (int i = 0; i < 3; i++)
     {
-        cubos[i] = new Cube*[3];
-        for(int j=0;j<3;j++){
-            cubos[i][j]=new Cube[3];
+        cubos[i] = new Cube *[3];
+        for (int j = 0; j < 3; j++)
+        {
+            cubos[i][j] = new Cube[3];
         }
     }
 
-    vector<float> pos={-0.45,0.45,0.45};
-    vector<float> pos1={pos[0]+0.3f,pos[1]-0.3f,pos[2]-0.3f};
+    vector<float> pos = {-0.45, 0.45, 0.45};
+    vector<float> pos1 = {pos[0] + 0.3f, pos[1] - 0.3f, pos[2] - 0.3f};
 
-    setVerticesCubes(cubos,cubep,cubesID,pos,pos1,uniColor);
+    setVerticesCubes(cubos, cubep, cubesID, pos, pos1, uniColor);
+
 
 
     // render loop
@@ -134,13 +145,10 @@ Shader shaderProgram("C:/Users/fabri/Documents/Universidad/Computacion_Grafica/F
         // input
         // -----
         processInput(window);
-        keyblock=false;
+        keyblock = false;
         glfwSetKeyCallback(window, key_callback);
 
-
-        for(int i=0;i<9;i++){
-            camada_[i].setIndex(i,cubesID);
-        }
+        updateCamadas_();
 
         // render
         // ------
@@ -158,7 +166,7 @@ Shader shaderProgram("C:/Users/fabri/Documents/Universidad/Computacion_Grafica/F
         unsigned int transformLoc = glGetUniformLocation(shaderProgram.ID, "transform");
         glm::mat4 trans = glm::mat4(1.0f);
         //trans = glm::rotate(trans, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        trans = glm::rotate(trans,  -(float)glfwGetTime(), glm::vec3(0.0f, 1.0f, 0.0f));
+        trans = glm::rotate(trans, -(float)glfwGetTime(), glm::vec3(0.0f, 1.0f, 0.0f));
 
         glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
 
@@ -172,15 +180,16 @@ Shader shaderProgram("C:/Users/fabri/Documents/Universidad/Computacion_Grafica/F
 
         glLineWidth(6);
 
-        for(int i=0;i<3;i++) {
-            for (int j = 0; j < 3; j++) {
-                for (int k = 0; k < 3; k++) {
-                    ((*(*(cubos+i)+j)+k))->drawCube();
+        for (int i = 0; i < 3; i++)
+        {
+            for (int j = 0; j < 3; j++)
+            {
+                for (int k = 0; k < 3; k++)
+                {
+                    ((*(*(cubos + i) + j) + k))->drawCube();
                 }
             }
         }
-
-
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
@@ -190,10 +199,13 @@ Shader shaderProgram("C:/Users/fabri/Documents/Universidad/Computacion_Grafica/F
 
     // optional: de-allocate all resources once they've outlived their purpose:
     // ------------------------------------------------------------------------
-    for(int i=0;i<3;i++) {
-        for (int j = 0; j < 3; j++) {
-            for (int k = 0; k < 3; k++) {
-                ((*(*(cubos+i)+j)+k))->deleteBuffer();
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            for (int k = 0; k < 3; k++)
+            {
+                ((*(*(cubos + i) + j) + k))->deleteBuffer();
             }
         }
     }
@@ -202,10 +214,10 @@ Shader shaderProgram("C:/Users/fabri/Documents/Universidad/Computacion_Grafica/F
     // ------------------------------------------------------------------
     glfwTerminate();
 
-
-    for(int i = 0; i < 3; i++)
+    for (int i = 0; i < 3; i++)
     {
-        for(int j=0;j<3;j++){
+        for (int j = 0; j < 3; j++)
+        {
             delete[] cubos[i][j];
         }
         delete[] cubos[i];
@@ -219,98 +231,262 @@ Shader shaderProgram("C:/Users/fabri/Documents/Universidad/Computacion_Grafica/F
 // ---------------------------------------------------------------------------------------------------------
 void processInput(GLFWwindow *window)
 {
-    if (keyblock==false && glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    if (keyblock == false && glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-    if (keyblock==false && glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    if (keyblock == false && glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         camera.ProcessKeyboard(FORWARD, deltaTime);
-    if (keyblock==false && glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    if (keyblock == false && glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
         camera.ProcessKeyboard(BACKWARD, deltaTime);
-    if (keyblock==false && glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    if (keyblock == false && glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
         camera.ProcessKeyboard(LEFT, deltaTime);
-    if (keyblock==false && glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    if (keyblock == false && glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.ProcessKeyboard(RIGHT, deltaTime);
 }
 
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+//void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
+//{
+//    if (keyblock == false && key == GLFW_KEY_T && action == GLFW_PRESS)
+//    {
+//        keyblock = true;
+//        movreg.push_back("L' ");
+//        camada_[0].movimiento(0, cubesID, window);
+//    }
+//    if (keyblock == false && key == GLFW_KEY_KP_7 && action == GLFW_PRESS)
+//    {
+//        keyblock = true;
+//        movreg.push_back("L ");
+//        camada_[0].movimiento(1, cubesID, window);
+//    }
+//    if (keyblock == false && key == GLFW_KEY_Y && action == GLFW_PRESS)
+//    {
+//        keyblock = true;
+//        movreg+="M' ";
+//        camada_[1].movimiento(0, cubesID, window);
+//    }
+//    if (keyblock == false && key == GLFW_KEY_KP_8 && action == GLFW_PRESS)
+//    {
+//        keyblock = true;
+//        movreg+="M ";
+//        camada_[1].movimiento(1, cubesID, window);
+//    }
+//    if (keyblock == false && key == GLFW_KEY_U && action == GLFW_PRESS)
+//    {
+//        keyblock = true;
+//        movreg+="R ";
+//        camada_[2].movimiento(0, cubesID, window);
+//    }
+//    if (keyblock == false && key == GLFW_KEY_KP_9 && action == GLFW_PRESS)
+//    {
+//        keyblock = true;
+//        movreg+="R' ";
+//        camada_[2].movimiento(1, cubesID, window);
+//    }
+//    if (keyblock == false && key == GLFW_KEY_G && action == GLFW_PRESS)
+//    {
+//        keyblock = true;
+//        movreg+="U ";
+//        camada_[3].movimiento(0, cubesID, window);
+//    }
+//    if (keyblock == false && key == GLFW_KEY_KP_4 && action == GLFW_PRESS)
+//    {
+//        keyblock = true;
+//        movreg+="U' ";
+//        camada_[3].movimiento(1, cubesID, window);
+//    }
+//    if (keyblock == false && key == GLFW_KEY_H && action == GLFW_PRESS)
+//    {
+//        keyblock = true;
+//        movreg+="E' ";
+//        camada_[4].movimiento(0, cubesID, window);
+//    }
+//    if (keyblock == false && key == GLFW_KEY_KP_5 && action == GLFW_PRESS)
+//    {
+//        keyblock = true;
+//        movreg+="E ";
+//        camada_[4].movimiento(1, cubesID, window);
+//    }
+//    if (keyblock == false && key == GLFW_KEY_J && action == GLFW_PRESS)
+//    {
+//        keyblock = true;
+//        movreg+="D' ";
+//        camada_[5].movimiento(0, cubesID, window);
+//    }
+//    if (keyblock == false && key == GLFW_KEY_KP_6 && action == GLFW_PRESS)
+//    {
+//        keyblock = true;
+//        movreg+="D ";
+//        camada_[5].movimiento(1, cubesID, window);
+//    }
+//    if (keyblock == false && key == GLFW_KEY_B && action == GLFW_PRESS)
+//    {
+//        keyblock = true;
+//        movreg+="F ";
+//        camada_[6].movimiento(0, cubesID, window);
+//    }
+//    if (keyblock == false && key == GLFW_KEY_KP_1 && action == GLFW_PRESS)
+//    {
+//        keyblock = true;
+//        movreg+="F' ";
+//        camada_[6].movimiento(1, cubesID, window);
+//    }
+//    if (keyblock == false && key == GLFW_KEY_N && action == GLFW_PRESS)
+//    {
+//        keyblock = true;
+//        movreg+="S ";
+//        camada_[7].movimiento(0, cubesID, window);
+//    }
+//    if (keyblock == false && key == GLFW_KEY_KP_2 && action == GLFW_PRESS)
+//    {
+//        keyblock = true;
+//        movreg+="S' ";
+//        camada_[7].movimiento(1, cubesID, window);
+//    }
+//    if (keyblock == false && key == GLFW_KEY_M && action == GLFW_PRESS)
+//    {
+//        keyblock = true;
+//        movreg+="B' ";
+//        camada_[8].movimiento(0, cubesID, window);
+//    }
+//    if (keyblock == false && key == GLFW_KEY_KP_3 && action == GLFW_PRESS)
+//    {
+//        keyblock = true;
+//        movreg+="B ";
+//        camada_[8].movimiento(1, cubesID, window);
+//    }
+//}
+
+void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
-    if(keyblock==false && key == GLFW_KEY_T && action == GLFW_PRESS) {
-        keyblock=true;
-        camada_[0].movimiento(0, cubesID,window);
+    if (keyblock == false && key == GLFW_KEY_Z && action == GLFW_PRESS){
+        string tempo=to_cube_not(movreg);
+        movreg.clear();
+        cout<<tempo<<endl;
+        exeanimation(tempo, window);
+        solvedCube=get_solution(tempo);
+        for(int i=0;i<solvedCube.size();++i){
+            cout<<solvedCube[i]<<" ";
+        }
+        cout<<endl;
     }
-    if(keyblock==false && key == GLFW_KEY_KP_7 && action == GLFW_PRESS){
-        keyblock=true;
-        camada_[0].movimiento(1,cubesID,window);
+
+    if (keyblock == false && key == GLFW_KEY_X && action == GLFW_PRESS){
+        exeanimation(solvedCube,window);
     }
-    if(keyblock==false && key == GLFW_KEY_Y && action == GLFW_PRESS){
-        keyblock=true;
-        camada_[1].movimiento(0,cubesID,window);
+
+    if (keyblock == false && key == GLFW_KEY_T && action == GLFW_PRESS)
+    {
+        keyblock = true;
+        movreg.push_back("L'");
+        camada_[0].movimiento(0, cubesID, window);
     }
-    if(keyblock==false && key == GLFW_KEY_KP_8 && action == GLFW_PRESS) {
-        keyblock=true;
-        camada_[1].movimiento(1,cubesID,window);
+    if (keyblock == false && key == GLFW_KEY_KP_7 && action == GLFW_PRESS)
+    {
+        keyblock = true;
+        movreg.push_back("L");
+        camada_[0].movimiento(1, cubesID, window);
     }
-    if(keyblock==false && key == GLFW_KEY_U && action == GLFW_PRESS){
-        keyblock=true;
-        camada_[2].movimiento(0,cubesID,window);
+    if (keyblock == false && key == GLFW_KEY_Y && action == GLFW_PRESS)
+    {
+        keyblock = true;
+        movreg.push_back("M'");
+        camada_[1].movimiento(0, cubesID, window);
     }
-    if(keyblock==false && key == GLFW_KEY_KP_9 && action == GLFW_PRESS) {
-        keyblock=true;
-        camada_[2].movimiento(1,cubesID,window);
+    if (keyblock == false && key == GLFW_KEY_KP_8 && action == GLFW_PRESS)
+    {
+        keyblock = true;
+        movreg.push_back("M");
+        camada_[1].movimiento(1, cubesID, window);
     }
-    if(keyblock==false && key == GLFW_KEY_G && action == GLFW_PRESS){
-        keyblock=true;
-        camada_[3].movimiento(0,cubesID,window);
+    if (keyblock == false && key == GLFW_KEY_U && action == GLFW_PRESS)
+    {
+        keyblock = true;
+        movreg.push_back("R");
+        camada_[2].movimiento(0, cubesID, window);
     }
-    if(keyblock==false && key == GLFW_KEY_KP_4 && action == GLFW_PRESS) {
-        keyblock=true;
-        camada_[3].movimiento(1,cubesID,window);
+    if (keyblock == false && key == GLFW_KEY_KP_9 && action == GLFW_PRESS)
+    {
+        keyblock = true;
+        movreg.push_back("R'");
+        camada_[2].movimiento(1, cubesID, window);
     }
-    if(keyblock==false && key == GLFW_KEY_H && action == GLFW_PRESS){
-        keyblock=true;
-        camada_[4].movimiento(0,cubesID,window);
+    if (keyblock == false && key == GLFW_KEY_G && action == GLFW_PRESS)
+    {
+        keyblock = true;
+        movreg.push_back("U");
+        camada_[3].movimiento(0, cubesID, window);
     }
-    if(keyblock==false && key == GLFW_KEY_KP_5 && action == GLFW_PRESS) {
-        keyblock=true;
-        camada_[4].movimiento(1,cubesID,window);
+    if (keyblock == false && key == GLFW_KEY_KP_4 && action == GLFW_PRESS)
+    {
+        keyblock = true;
+        movreg.push_back("U'");
+        camada_[3].movimiento(1, cubesID, window);
     }
-    if(keyblock==false && key == GLFW_KEY_J && action == GLFW_PRESS){
-        keyblock=true;
-        camada_[5].movimiento(0,cubesID,window);
+    if (keyblock == false && key == GLFW_KEY_H && action == GLFW_PRESS)
+    {
+        keyblock = true;
+        movreg.push_back("E'");
+        camada_[4].movimiento(0, cubesID, window);
     }
-    if(keyblock==false && key == GLFW_KEY_KP_6 && action == GLFW_PRESS) {
-        keyblock=true;
-        camada_[5].movimiento(1,cubesID,window);
+    if (keyblock == false && key == GLFW_KEY_KP_5 && action == GLFW_PRESS)
+    {
+        keyblock = true;
+        movreg.push_back("E");
+        camada_[4].movimiento(1, cubesID, window);
     }
-    if(keyblock==false && key == GLFW_KEY_B && action == GLFW_PRESS){
-        keyblock=true;
-        camada_[6].movimiento(0,cubesID,window);
+    if (keyblock == false && key == GLFW_KEY_J && action == GLFW_PRESS)
+    {
+        keyblock = true;
+        movreg.push_back("D'");
+        camada_[5].movimiento(0, cubesID, window);
     }
-    if(keyblock==false && key == GLFW_KEY_KP_1 && action == GLFW_PRESS) {
-        keyblock=true;
-        camada_[6].movimiento(1,cubesID,window);
+    if (keyblock == false && key == GLFW_KEY_KP_6 && action == GLFW_PRESS)
+    {
+        keyblock = true;
+        movreg.push_back("D");
+        camada_[5].movimiento(1, cubesID, window);
     }
-    if(keyblock==false && key == GLFW_KEY_N && action == GLFW_PRESS){
-        keyblock=true;
-        camada_[7].movimiento(0,cubesID,window);
+    if (keyblock == false && key == GLFW_KEY_B && action == GLFW_PRESS)
+    {
+        keyblock = true;
+        movreg.push_back("F");
+        camada_[6].movimiento(0, cubesID, window);
     }
-    if(keyblock==false && key == GLFW_KEY_KP_2 && action == GLFW_PRESS) {
-        keyblock=true;
-        camada_[7].movimiento(1,cubesID,window);
+    if (keyblock == false && key == GLFW_KEY_KP_1 && action == GLFW_PRESS)
+    {
+        keyblock = true;
+        movreg.push_back("F'");
+        camada_[6].movimiento(1, cubesID, window);
     }
-    if(keyblock==false && key == GLFW_KEY_M && action == GLFW_PRESS){
-        keyblock=true;
-        camada_[8].movimiento(0,cubesID,window);
+    if (keyblock == false && key == GLFW_KEY_N && action == GLFW_PRESS)
+    {
+        keyblock = true;
+        movreg.push_back("S");
+        camada_[7].movimiento(0, cubesID, window);
     }
-    if(keyblock==false && key == GLFW_KEY_KP_3 && action == GLFW_PRESS) {
-        keyblock=true;
-        camada_[8].movimiento(1,cubesID,window);
+    if (keyblock == false && key == GLFW_KEY_KP_2 && action == GLFW_PRESS)
+    {
+        keyblock = true;
+        movreg.push_back("S'");
+        camada_[7].movimiento(1, cubesID, window);
+    }
+    if (keyblock == false && key == GLFW_KEY_M && action == GLFW_PRESS)
+    {
+        keyblock = true;
+        movreg.push_back("B'");
+        camada_[8].movimiento(0, cubesID, window);
+    }
+    if (keyblock == false && key == GLFW_KEY_KP_3 && action == GLFW_PRESS)
+    {
+        keyblock = true;
+        movreg.push_back("B");
+        camada_[8].movimiento(1, cubesID, window);
     }
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
 // ---------------------------------------------------------------------------------------------
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 {
     // make sure the viewport matches the new window dimensions; note that width and
     // height will be significantly larger than specified on retina displays.
@@ -319,7 +495,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 // glfw: whenever the mouse moves, this callback is called
 // -------------------------------------------------------
-void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+void mouse_callback(GLFWwindow *window, double xpos, double ypos)
 {
     if (firstMouse)
     {
@@ -339,41 +515,320 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 
 // glfw: whenever the mouse scroll wheel scrolls, this callback is called
 // ----------------------------------------------------------------------
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
 {
     camera.ProcessMouseScroll(yoffset);
 }
 
-void setVerticesCubes(Cube*** cubos_,Cube* cubosp_[27],Cube* cubosID_[27],vector<float> pos_,vector<float> pos1_, GLint uniColor_){
-    int count=0;
-    float separation=0.01;
-    pos_={pos_[0]-separation,pos_[1]+separation,pos_[2]+separation};
-    pos1_={pos_[0]+0.3f,pos_[1]-0.3f,pos_[2]-0.3f};
-    for(int i=0;i<3;i++){
-        for(int j=0;j<3;j++){
-            for(int k=0;k<3;k++){
-                vector<float> vertices_={pos_[0],pos_[1],pos_[2],
-                                         pos1_[0],pos_[1],pos_[2],
-                                         pos_[0],pos_[1],pos1_[2],
-                                         pos1_[0],pos_[1],pos1_[2],
-                                         pos_[0],pos1_[1],pos_[2],
-                                         pos1_[0],pos1_[1],pos_[2],
-                                         pos_[0],pos1_[1],pos1_[2],
-                                         pos1_[0],pos1_[1],pos1_[2]};
-                ((*(*(cubos_+i)+j)+k))->setGLint(uniColor_);
-                ((*(*(cubos_+i)+j)+k))->setVertex(vertices_);
-                ((*(*(cubos_+i)+j)+k))->createbindbuffers();
-                ((*(*(cubos_+i)+j)+k))->setID(count);
-                cubosp_[count]=((*(*(cubos_+i)+j)+k));
-                cubosID_[count]=((*(*(cubos_+i)+j)+k));
-                pos_={pos_[0]+0.3f+separation,pos_[1],pos_[2]};
-                pos1_={pos_[0]+0.3f,pos_[1]-0.3f,pos_[2]-0.3f};
+void setVerticesCubes(Cube ***cubos_, Cube *cubosp_[27], Cube *cubosID_[27], vector<float> pos_, vector<float> pos1_, GLint uniColor_)
+{
+    int count = 0;
+    float separation = 0.01;
+    pos_ = {pos_[0] - separation, pos_[1] + separation, pos_[2] + separation};
+    pos1_ = {pos_[0] + 0.3f, pos_[1] - 0.3f, pos_[2] - 0.3f};
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            for (int k = 0; k < 3; k++)
+            {
+                vector<float> vertices_ = {pos_[0], pos_[1], pos_[2],
+                                           pos1_[0], pos_[1], pos_[2],
+                                           pos_[0], pos_[1], pos1_[2],
+                                           pos1_[0], pos_[1], pos1_[2],
+                                           pos_[0], pos1_[1], pos_[2],
+                                           pos1_[0], pos1_[1], pos_[2],
+                                           pos_[0], pos1_[1], pos1_[2],
+                                           pos1_[0], pos1_[1], pos1_[2]};
+                ((*(*(cubos_ + i) + j) + k))->setGLint(uniColor_);
+                ((*(*(cubos_ + i) + j) + k))->setVertex(vertices_);
+                ((*(*(cubos_ + i) + j) + k))->createbindbuffers();
+                ((*(*(cubos_ + i) + j) + k))->setID(count);
+                cubosp_[count] = ((*(*(cubos_ + i) + j) + k));
+                cubosID_[count] = ((*(*(cubos_ + i) + j) + k));
+                pos_ = {pos_[0] + 0.3f + separation, pos_[1], pos_[2]};
+                pos1_ = {pos_[0] + 0.3f, pos_[1] - 0.3f, pos_[2] - 0.3f};
                 count++;
             }
-            pos_={pos_[0]-0.9f-(3*separation),pos_[1]-0.3f-separation,pos_[2]};
-            pos1_={pos_[0]+0.3f,pos_[1]-0.3f,pos_[2]-0.3f};
+            pos_ = {pos_[0] - 0.9f - (3 * separation), pos_[1] - 0.3f - separation, pos_[2]};
+            pos1_ = {pos_[0] + 0.3f, pos_[1] - 0.3f, pos_[2] - 0.3f};
         }
-        pos_={pos_[0],pos_[1]+0.9f+(3*separation),pos_[2]-0.3f-(separation)};
-        pos1_={pos_[0]+0.3f,pos_[1]-0.3f,pos_[2]-0.3f};
+        pos_ = {pos_[0], pos_[1] + 0.9f + (3 * separation), pos_[2] - 0.3f - (separation)};
+        pos1_ = {pos_[0] + 0.3f, pos_[1] - 0.3f, pos_[2] - 0.3f};
     }
+}
+
+void exeanimation(std::vector<std::string> str, GLFWwindow *window){
+    string mov="";
+    while(!(str.empty())){
+        mov=str[0];
+        str.erase(str.begin());
+        if(mov=="L'"){
+            camada_[0].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="L"){
+            camada_[0].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="L2"){
+            camada_[0].movimiento(1, cubesID, window);
+            updateCamadas_();
+            camada_[0].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="M'"){
+            camada_[1].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="M"){
+            camada_[1].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="M2"){
+            camada_[1].movimiento(1, cubesID, window);
+            updateCamadas_();
+            camada_[1].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="R"){
+            camada_[2].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="R'"){
+            camada_[2].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="R2"){
+            camada_[2].movimiento(0, cubesID, window);
+            updateCamadas_();
+            camada_[2].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="U"){
+            camada_[3].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="U2"){
+            camada_[3].movimiento(0, cubesID, window);
+            updateCamadas_();
+            camada_[3].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="U'"){
+            camada_[3].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="E'"){
+            camada_[4].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="E"){
+            camada_[4].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="E2"){
+            camada_[4].movimiento(1, cubesID, window);
+            updateCamadas_();
+            camada_[4].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="D'"){
+            camada_[5].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="D2"){
+            camada_[5].movimiento(1, cubesID, window);
+            updateCamadas_();
+            camada_[5].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="D"){
+            camada_[5].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="F"){
+            camada_[6].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="F2"){
+            camada_[6].movimiento(0, cubesID, window);
+            updateCamadas_();
+            camada_[6].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="F'"){
+            camada_[6].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="S"){
+            camada_[7].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="S2"){
+            camada_[7].movimiento(0, cubesID, window);
+            updateCamadas_();
+            camada_[7].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="S'"){
+            camada_[7].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="B'"){
+            camada_[8].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="B"){
+            camada_[8].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="B2"){
+            camada_[8].movimiento(1, cubesID, window);
+            updateCamadas_();
+            camada_[8].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+    }
+}
+
+void exeanimation(std::string str, GLFWwindow *window){
+    std::string mov = "";
+    for(std::string::size_type i = 0; i < str.size(); ++i) {
+        mov=str[i];
+        if(mov=="L'"){
+            camada_[0].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="L"){
+            camada_[0].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="L2"){
+            camada_[0].movimiento(1, cubesID, window);
+            updateCamadas_();
+            camada_[0].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="M'"){
+            camada_[1].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="M"){
+            camada_[1].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="M2"){
+            camada_[1].movimiento(1, cubesID, window);
+            updateCamadas_();
+            camada_[1].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="R"){
+            camada_[2].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="R'"){
+            camada_[2].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="R2"){
+            camada_[2].movimiento(0, cubesID, window);
+            updateCamadas_();
+            camada_[2].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="U"){
+            camada_[3].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="U2"){
+            camada_[3].movimiento(0, cubesID, window);
+            updateCamadas_();
+            camada_[3].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="U'"){
+            camada_[3].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="E'"){
+            camada_[4].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="E"){
+            camada_[4].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="E2"){
+            camada_[4].movimiento(1, cubesID, window);
+            updateCamadas_();
+            camada_[4].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="D'"){
+            camada_[5].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="D2"){
+            camada_[5].movimiento(0, cubesID, window);
+            updateCamadas_();
+            camada_[5].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="D"){
+            camada_[5].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="F"){
+            camada_[6].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="F2"){
+            camada_[6].movimiento(0, cubesID, window);
+            updateCamadas_();
+            camada_[6].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="F'"){
+            camada_[6].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="S"){
+            camada_[7].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="S2"){
+            camada_[7].movimiento(0, cubesID, window);
+            updateCamadas_();
+            camada_[7].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="S'"){
+            camada_[7].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="B'"){
+            camada_[8].movimiento(0, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="B"){
+            camada_[8].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+        else if(mov=="B2"){
+            camada_[8].movimiento(1, cubesID, window);
+            updateCamadas_();
+            camada_[8].movimiento(1, cubesID, window);
+            updateCamadas_();
+        }
+    }
+}
+
+void updateCamadas_(){
+    for (int i = 0; i < 9; i++)
+    {
+        camada_[i].setIndex(i, cubesID);
+    }
+
 }

@@ -1,12 +1,12 @@
-project( Rubik_Cube )
+project( rubick-jean-fabrizzio )
 
 message( "Configuring main application - ${PROJECT_NAME} : " )
 
 # OpenGL
 find_package(OpenGL REQUIRED)
 
-file(GLOB SOURCES "*.cpp" ${DEPENDENCY_DIR}/include/glad/glad/glad.c )
-file(GLOB HEADERS "*.h" )
+file(GLOB SOURCES "*.cpp" ${DEPENDENCY_DIR}/include/glad/glad/glad.c "AllCube/*.cpp")
+file(GLOB HEADERS "*.h" "AllCube*.h")
 file(GLOB SHADERS "*.vert" "*.frag" "*.vs" "*.fs" )
 
 include_directories( 
