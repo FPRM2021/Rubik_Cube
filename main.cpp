@@ -11,6 +11,7 @@
 #include <vector>
 #include "AllCube/solve.h"
 #include "AllCube/random.h"
+#include <windows.h>
 
 #define PI 3.14159265
 
@@ -33,10 +34,9 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
-void setVerticesCubes(Cube ***cubos_, Cube *cubosp_[27], Cube *cubosID_[27], vector<float> pos_, vector<float> pos1_, GLint uniColor_);
+void setVerticesCubes(Cube ***cubos_, Cube *cubosp_[27], vector<float> pos_, GLint uniColor_);
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
 void exeanimation(std::vector<std::string> str, GLFWwindow *window);
-void exeanimation(std::string str, GLFWwindow *window);
 void updateCamadas_();
 
 GLfloat sizes[2]; // Store supported point size range
@@ -44,7 +44,7 @@ GLfloat step;     // Store supported point size increments
 GLfloat curSize;  // Store current point size
 
 Camada camada_[9];
-Cube *cubesID[27];
+Cube *cubep[27];
 
 bool keyblock = false;
 //Para usar el solver:
@@ -56,10 +56,12 @@ bool keyblock = false;
 
 std::vector<std::string> movreg;
 std::vector<std::string> solvedCube;
+unsigned int milliseconds = 500;
 
 
 int main()
 {
+
     auto t_start = std::chrono::high_resolution_clock::now();
     // glfw: initialize and configure
     // ------------------------------
@@ -115,7 +117,7 @@ int main()
 
     //inicializacion de cubos
     Cube ***cubos = new Cube **[3];
-    Cube *cubep[27];
+    
 
     for (int i = 0; i < 3; i++)
     {
@@ -127,9 +129,8 @@ int main()
     }
 
     vector<float> pos = {-0.45, 0.45, 0.45};
-    vector<float> pos1 = {pos[0] + 0.3f, pos[1] - 0.3f, pos[2] - 0.3f};
 
-    setVerticesCubes(cubos, cubep, cubesID, pos, pos1, uniColor);
+    setVerticesCubes(cubos, cubep, pos, uniColor);
 
 
 
@@ -154,8 +155,6 @@ int main()
         // ------
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        glClear(GL_COLOR_BUFFER_BIT);
 
         glPointSize(curSize);
 
@@ -186,7 +185,7 @@ int main()
             {
                 for (int k = 0; k < 3; k++)
                 {
-                    ((*(*(cubos + i) + j) + k))->drawCube();
+                    ((*(*(cubos + i) + j) + k))->drawEffect();
                 }
             }
         }
@@ -244,133 +243,46 @@ void processInput(GLFWwindow *window)
         camera.ProcessKeyboard(RIGHT, deltaTime);
 }
 
-//void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
-//{
-//    if (keyblock == false && key == GLFW_KEY_T && action == GLFW_PRESS)
-//    {
-//        keyblock = true;
-//        movreg.push_back("L' ");
-//        camada_[0].movimiento(0, cubesID, window);
-//    }
-//    if (keyblock == false && key == GLFW_KEY_KP_7 && action == GLFW_PRESS)
-//    {
-//        keyblock = true;
-//        movreg.push_back("L ");
-//        camada_[0].movimiento(1, cubesID, window);
-//    }
-//    if (keyblock == false && key == GLFW_KEY_Y && action == GLFW_PRESS)
-//    {
-//        keyblock = true;
-//        movreg+="M' ";
-//        camada_[1].movimiento(0, cubesID, window);
-//    }
-//    if (keyblock == false && key == GLFW_KEY_KP_8 && action == GLFW_PRESS)
-//    {
-//        keyblock = true;
-//        movreg+="M ";
-//        camada_[1].movimiento(1, cubesID, window);
-//    }
-//    if (keyblock == false && key == GLFW_KEY_U && action == GLFW_PRESS)
-//    {
-//        keyblock = true;
-//        movreg+="R ";
-//        camada_[2].movimiento(0, cubesID, window);
-//    }
-//    if (keyblock == false && key == GLFW_KEY_KP_9 && action == GLFW_PRESS)
-//    {
-//        keyblock = true;
-//        movreg+="R' ";
-//        camada_[2].movimiento(1, cubesID, window);
-//    }
-//    if (keyblock == false && key == GLFW_KEY_G && action == GLFW_PRESS)
-//    {
-//        keyblock = true;
-//        movreg+="U ";
-//        camada_[3].movimiento(0, cubesID, window);
-//    }
-//    if (keyblock == false && key == GLFW_KEY_KP_4 && action == GLFW_PRESS)
-//    {
-//        keyblock = true;
-//        movreg+="U' ";
-//        camada_[3].movimiento(1, cubesID, window);
-//    }
-//    if (keyblock == false && key == GLFW_KEY_H && action == GLFW_PRESS)
-//    {
-//        keyblock = true;
-//        movreg+="E' ";
-//        camada_[4].movimiento(0, cubesID, window);
-//    }
-//    if (keyblock == false && key == GLFW_KEY_KP_5 && action == GLFW_PRESS)
-//    {
-//        keyblock = true;
-//        movreg+="E ";
-//        camada_[4].movimiento(1, cubesID, window);
-//    }
-//    if (keyblock == false && key == GLFW_KEY_J && action == GLFW_PRESS)
-//    {
-//        keyblock = true;
-//        movreg+="D' ";
-//        camada_[5].movimiento(0, cubesID, window);
-//    }
-//    if (keyblock == false && key == GLFW_KEY_KP_6 && action == GLFW_PRESS)
-//    {
-//        keyblock = true;
-//        movreg+="D ";
-//        camada_[5].movimiento(1, cubesID, window);
-//    }
-//    if (keyblock == false && key == GLFW_KEY_B && action == GLFW_PRESS)
-//    {
-//        keyblock = true;
-//        movreg+="F ";
-//        camada_[6].movimiento(0, cubesID, window);
-//    }
-//    if (keyblock == false && key == GLFW_KEY_KP_1 && action == GLFW_PRESS)
-//    {
-//        keyblock = true;
-//        movreg+="F' ";
-//        camada_[6].movimiento(1, cubesID, window);
-//    }
-//    if (keyblock == false && key == GLFW_KEY_N && action == GLFW_PRESS)
-//    {
-//        keyblock = true;
-//        movreg+="S ";
-//        camada_[7].movimiento(0, cubesID, window);
-//    }
-//    if (keyblock == false && key == GLFW_KEY_KP_2 && action == GLFW_PRESS)
-//    {
-//        keyblock = true;
-//        movreg+="S' ";
-//        camada_[7].movimiento(1, cubesID, window);
-//    }
-//    if (keyblock == false && key == GLFW_KEY_M && action == GLFW_PRESS)
-//    {
-//        keyblock = true;
-//        movreg+="B' ";
-//        camada_[8].movimiento(0, cubesID, window);
-//    }
-//    if (keyblock == false && key == GLFW_KEY_KP_3 && action == GLFW_PRESS)
-//    {
-//        keyblock = true;
-//        movreg+="B ";
-//        camada_[8].movimiento(1, cubesID, window);
-//    }
-//}
-
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
+//    if (keyblock == false && key == GLFW_KEY_C && action == GLFW_PRESS){
+//        string tempo1= to_cube_not(movreg);
+//        movreg.clear();
+//        solvedCube=get_solution(tempo1);
+//        for(int i=0;i<solvedCube.size();++i){
+//            cout<<solvedCube[i]<<" ";
+//        }
+//        cout<<endl;
+//    }
+
     if (keyblock == false && key == GLFW_KEY_Z && action == GLFW_PRESS){
-        string tempo=to_cube_not(movreg);
+        std::string temp = "";
+        //std::vector<std::string> tempo;
+        std::string aux = "";
+        temp=randomize();
+        for(std::string::size_type i = 0; i < temp.size(); ++i) {
+            aux=temp[i];
+            cout<<temp[i]<<" ";
+            movreg.push_back(aux);
+        }
+        cout<<endl;
+        string tempo1=to_cube_not(movreg);
+        exeanimation(movreg, window);
+//        solvedCube=get_solution(tempo1);
+//        for(int i=0;i<solvedCube.size();++i){
+//            cout<<solvedCube[i]<<" ";
+//        }
+//        cout<<endl;
+    }
+
+    if (keyblock == false && key == GLFW_KEY_X && action == GLFW_PRESS){
+        string tempo1= to_cube_not(movreg);
         movreg.clear();
-        cout<<tempo<<endl;
-        exeanimation(tempo, window);
-        solvedCube=get_solution(tempo);
+        solvedCube=get_solution(tempo1);
         for(int i=0;i<solvedCube.size();++i){
             cout<<solvedCube[i]<<" ";
         }
         cout<<endl;
-    }
-
-    if (keyblock == false && key == GLFW_KEY_X && action == GLFW_PRESS){
         exeanimation(solvedCube,window);
     }
 
@@ -378,109 +290,109 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
     {
         keyblock = true;
         movreg.push_back("L'");
-        camada_[0].movimiento(0, cubesID, window);
+        camada_[0].movimiento(0, cubep, window);
     }
     if (keyblock == false && key == GLFW_KEY_KP_7 && action == GLFW_PRESS)
     {
         keyblock = true;
         movreg.push_back("L");
-        camada_[0].movimiento(1, cubesID, window);
+        camada_[0].movimiento(1, cubep, window);
     }
-    if (keyblock == false && key == GLFW_KEY_Y && action == GLFW_PRESS)
-    {
-        keyblock = true;
-        movreg.push_back("M'");
-        camada_[1].movimiento(0, cubesID, window);
-    }
-    if (keyblock == false && key == GLFW_KEY_KP_8 && action == GLFW_PRESS)
-    {
-        keyblock = true;
-        movreg.push_back("M");
-        camada_[1].movimiento(1, cubesID, window);
-    }
+//    if (keyblock == false && key == GLFW_KEY_Y && action == GLFW_PRESS)
+//    {
+//        keyblock = true;
+//        movreg.push_back("M'");
+//        camada_[1].movimiento(0, cubep, window);
+//    }
+//    if (keyblock == false && key == GLFW_KEY_KP_8 && action == GLFW_PRESS)
+//    {
+//        keyblock = true;
+//        movreg.push_back("M");
+//        camada_[1].movimiento(1, cubep, window);
+//    }
     if (keyblock == false && key == GLFW_KEY_U && action == GLFW_PRESS)
     {
         keyblock = true;
         movreg.push_back("R");
-        camada_[2].movimiento(0, cubesID, window);
+        camada_[2].movimiento(0, cubep, window);
     }
     if (keyblock == false && key == GLFW_KEY_KP_9 && action == GLFW_PRESS)
     {
         keyblock = true;
         movreg.push_back("R'");
-        camada_[2].movimiento(1, cubesID, window);
+        camada_[2].movimiento(1, cubep, window);
     }
     if (keyblock == false && key == GLFW_KEY_G && action == GLFW_PRESS)
     {
         keyblock = true;
         movreg.push_back("U");
-        camada_[3].movimiento(0, cubesID, window);
+        camada_[3].movimiento(0, cubep, window);
     }
     if (keyblock == false && key == GLFW_KEY_KP_4 && action == GLFW_PRESS)
     {
         keyblock = true;
         movreg.push_back("U'");
-        camada_[3].movimiento(1, cubesID, window);
+        camada_[3].movimiento(1, cubep, window);
     }
-    if (keyblock == false && key == GLFW_KEY_H && action == GLFW_PRESS)
-    {
-        keyblock = true;
-        movreg.push_back("E'");
-        camada_[4].movimiento(0, cubesID, window);
-    }
-    if (keyblock == false && key == GLFW_KEY_KP_5 && action == GLFW_PRESS)
-    {
-        keyblock = true;
-        movreg.push_back("E");
-        camada_[4].movimiento(1, cubesID, window);
-    }
+//    if (keyblock == false && key == GLFW_KEY_H && action == GLFW_PRESS)
+//    {
+//        keyblock = true;
+//        movreg.push_back("E'");
+//        camada_[4].movimiento(0, cubep, window);
+//    }
+//    if (keyblock == false && key == GLFW_KEY_KP_5 && action == GLFW_PRESS)
+//    {
+//        keyblock = true;
+//        movreg.push_back("E");
+//        camada_[4].movimiento(1, cubep, window);
+//    }
     if (keyblock == false && key == GLFW_KEY_J && action == GLFW_PRESS)
     {
         keyblock = true;
         movreg.push_back("D'");
-        camada_[5].movimiento(0, cubesID, window);
+        camada_[5].movimiento(0, cubep, window);
     }
     if (keyblock == false && key == GLFW_KEY_KP_6 && action == GLFW_PRESS)
     {
         keyblock = true;
         movreg.push_back("D");
-        camada_[5].movimiento(1, cubesID, window);
+        camada_[5].movimiento(1, cubep, window);
     }
     if (keyblock == false && key == GLFW_KEY_B && action == GLFW_PRESS)
     {
         keyblock = true;
         movreg.push_back("F");
-        camada_[6].movimiento(0, cubesID, window);
+        camada_[6].movimiento(0, cubep, window);
     }
     if (keyblock == false && key == GLFW_KEY_KP_1 && action == GLFW_PRESS)
     {
         keyblock = true;
         movreg.push_back("F'");
-        camada_[6].movimiento(1, cubesID, window);
+        camada_[6].movimiento(1, cubep, window);
     }
-    if (keyblock == false && key == GLFW_KEY_N && action == GLFW_PRESS)
-    {
-        keyblock = true;
-        movreg.push_back("S");
-        camada_[7].movimiento(0, cubesID, window);
-    }
-    if (keyblock == false && key == GLFW_KEY_KP_2 && action == GLFW_PRESS)
-    {
-        keyblock = true;
-        movreg.push_back("S'");
-        camada_[7].movimiento(1, cubesID, window);
-    }
+//    if (keyblock == false && key == GLFW_KEY_N && action == GLFW_PRESS)
+//    {
+//        keyblock = true;
+//        movreg.push_back("S");
+//        camada_[7].movimiento(0, cubep, window);
+//    }
+//    if (keyblock == false && key == GLFW_KEY_KP_2 && action == GLFW_PRESS)
+//    {
+//        keyblock = true;
+//        movreg.push_back("S'");
+//        camada_[7].movimiento(1, cubep, window);
+//    }
     if (keyblock == false && key == GLFW_KEY_M && action == GLFW_PRESS)
     {
         keyblock = true;
         movreg.push_back("B'");
-        camada_[8].movimiento(0, cubesID, window);
+        camada_[8].movimiento(0, cubep, window);
     }
     if (keyblock == false && key == GLFW_KEY_KP_3 && action == GLFW_PRESS)
     {
         keyblock = true;
         movreg.push_back("B");
-        camada_[8].movimiento(1, cubesID, window);
+        camada_[8].movimiento(1, cubep, window);
     }
 }
 
@@ -520,12 +432,12 @@ void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
     camera.ProcessMouseScroll(yoffset);
 }
 
-void setVerticesCubes(Cube ***cubos_, Cube *cubosp_[27], Cube *cubosID_[27], vector<float> pos_, vector<float> pos1_, GLint uniColor_)
+void setVerticesCubes(Cube ***cubos_, Cube *cubosp_[27], vector<float> pos_, GLint uniColor_)
 {
     int count = 0;
     float separation = 0.01;
     pos_ = {pos_[0] - separation, pos_[1] + separation, pos_[2] + separation};
-    pos1_ = {pos_[0] + 0.3f, pos_[1] - 0.3f, pos_[2] - 0.3f};
+    vector<float> pos1_ = {pos_[0] + 0.3f, pos_[1] - 0.3f, pos_[2] - 0.3f};
     for (int i = 0; i < 3; i++)
     {
         for (int j = 0; j < 3; j++)
@@ -545,7 +457,6 @@ void setVerticesCubes(Cube ***cubos_, Cube *cubosp_[27], Cube *cubosID_[27], vec
                 ((*(*(cubos_ + i) + j) + k))->createbindbuffers();
                 ((*(*(cubos_ + i) + j) + k))->setID(count);
                 cubosp_[count] = ((*(*(cubos_ + i) + j) + k));
-                cubosID_[count] = ((*(*(cubos_ + i) + j) + k));
                 pos_ = {pos_[0] + 0.3f + separation, pos_[1], pos_[2]};
                 pos1_ = {pos_[0] + 0.3f, pos_[1] - 0.3f, pos_[2] - 0.3f};
                 count++;
@@ -560,266 +471,170 @@ void setVerticesCubes(Cube ***cubos_, Cube *cubosp_[27], Cube *cubosID_[27], vec
 
 void exeanimation(std::vector<std::string> str, GLFWwindow *window){
     string mov="";
+
     while(!(str.empty())){
         mov=str[0];
         str.erase(str.begin());
         if(mov=="L'"){
-            camada_[0].movimiento(0, cubesID, window);
+            camada_[0].movimiento(0, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="L"){
-            camada_[0].movimiento(1, cubesID, window);
+            camada_[0].movimiento(1, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="L2"){
-            camada_[0].movimiento(1, cubesID, window);
+            camada_[0].movimiento(1, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
-            camada_[0].movimiento(1, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="M'"){
-            camada_[1].movimiento(0, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="M"){
-            camada_[1].movimiento(1, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="M2"){
-            camada_[1].movimiento(1, cubesID, window);
-            updateCamadas_();
-            camada_[1].movimiento(1, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="R"){
-            camada_[2].movimiento(0, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="R'"){
-            camada_[2].movimiento(1, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="R2"){
-            camada_[2].movimiento(0, cubesID, window);
-            updateCamadas_();
-            camada_[2].movimiento(0, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="U"){
-            camada_[3].movimiento(0, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="U2"){
-            camada_[3].movimiento(0, cubesID, window);
-            updateCamadas_();
-            camada_[3].movimiento(0, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="U'"){
-            camada_[3].movimiento(1, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="E'"){
-            camada_[4].movimiento(0, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="E"){
-            camada_[4].movimiento(1, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="E2"){
-            camada_[4].movimiento(1, cubesID, window);
-            updateCamadas_();
-            camada_[4].movimiento(1, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="D'"){
-            camada_[5].movimiento(0, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="D2"){
-            camada_[5].movimiento(1, cubesID, window);
-            updateCamadas_();
-            camada_[5].movimiento(1, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="D"){
-            camada_[5].movimiento(1, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="F"){
-            camada_[6].movimiento(0, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="F2"){
-            camada_[6].movimiento(0, cubesID, window);
-            updateCamadas_();
-            camada_[6].movimiento(0, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="F'"){
-            camada_[6].movimiento(1, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="S"){
-            camada_[7].movimiento(0, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="S2"){
-            camada_[7].movimiento(0, cubesID, window);
-            updateCamadas_();
-            camada_[7].movimiento(0, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="S'"){
-            camada_[7].movimiento(1, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="B'"){
-            camada_[8].movimiento(0, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="B"){
-            camada_[8].movimiento(1, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="B2"){
-            camada_[8].movimiento(1, cubesID, window);
-            updateCamadas_();
-            camada_[8].movimiento(1, cubesID, window);
-            updateCamadas_();
-        }
-    }
-}
-
-void exeanimation(std::string str, GLFWwindow *window){
-    std::string mov = "";
-    for(std::string::size_type i = 0; i < str.size(); ++i) {
-        mov=str[i];
-        if(mov=="L'"){
-            camada_[0].movimiento(0, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="L"){
-            camada_[0].movimiento(1, cubesID, window);
-            updateCamadas_();
-        }
-        else if(mov=="L2"){
-            camada_[0].movimiento(1, cubesID, window);
-            updateCamadas_();
-            camada_[0].movimiento(1, cubesID, window);
+            camada_[0].movimiento(1, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="M'"){
-            camada_[1].movimiento(0, cubesID, window);
+            camada_[1].movimiento(0, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="M"){
-            camada_[1].movimiento(1, cubesID, window);
+            camada_[1].movimiento(1, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="M2"){
-            camada_[1].movimiento(1, cubesID, window);
+            camada_[1].movimiento(1, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
-            camada_[1].movimiento(1, cubesID, window);
+            camada_[1].movimiento(1, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="R"){
-            camada_[2].movimiento(0, cubesID, window);
+            camada_[2].movimiento(0, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="R'"){
-            camada_[2].movimiento(1, cubesID, window);
+            camada_[2].movimiento(1, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="R2"){
-            camada_[2].movimiento(0, cubesID, window);
+            camada_[2].movimiento(0, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
-            camada_[2].movimiento(0, cubesID, window);
+            camada_[2].movimiento(0, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="U"){
-            camada_[3].movimiento(0, cubesID, window);
+            camada_[3].movimiento(0, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="U2"){
-            camada_[3].movimiento(0, cubesID, window);
+            camada_[3].movimiento(0, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
-            camada_[3].movimiento(0, cubesID, window);
+            camada_[3].movimiento(0, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="U'"){
-            camada_[3].movimiento(1, cubesID, window);
+            camada_[3].movimiento(1, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="E'"){
-            camada_[4].movimiento(0, cubesID, window);
+            camada_[4].movimiento(0, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="E"){
-            camada_[4].movimiento(1, cubesID, window);
+            camada_[4].movimiento(1, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="E2"){
-            camada_[4].movimiento(1, cubesID, window);
+            camada_[4].movimiento(1, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
-            camada_[4].movimiento(1, cubesID, window);
+            camada_[4].movimiento(1, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="D'"){
-            camada_[5].movimiento(0, cubesID, window);
+            camada_[5].movimiento(0, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="D2"){
-            camada_[5].movimiento(0, cubesID, window);
+            camada_[5].movimiento(1, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
-            camada_[5].movimiento(0, cubesID, window);
+            camada_[5].movimiento(1, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="D"){
-            camada_[5].movimiento(1, cubesID, window);
+            camada_[5].movimiento(1, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="F"){
-            camada_[6].movimiento(0, cubesID, window);
+            camada_[6].movimiento(0, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="F2"){
-            camada_[6].movimiento(0, cubesID, window);
+            camada_[6].movimiento(0, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
-            camada_[6].movimiento(0, cubesID, window);
+            camada_[6].movimiento(0, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="F'"){
-            camada_[6].movimiento(1, cubesID, window);
+            camada_[6].movimiento(1, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="S"){
-            camada_[7].movimiento(0, cubesID, window);
+            camada_[7].movimiento(0, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="S2"){
-            camada_[7].movimiento(0, cubesID, window);
+            camada_[7].movimiento(0, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
-            camada_[7].movimiento(0, cubesID, window);
+            camada_[7].movimiento(0, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="S'"){
-            camada_[7].movimiento(1, cubesID, window);
+            camada_[7].movimiento(1, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="B'"){
-            camada_[8].movimiento(0, cubesID, window);
+            camada_[8].movimiento(0, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="B"){
-            camada_[8].movimiento(1, cubesID, window);
+            camada_[8].movimiento(1, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
         else if(mov=="B2"){
-            camada_[8].movimiento(1, cubesID, window);
+            camada_[8].movimiento(1, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
-            camada_[8].movimiento(1, cubesID, window);
+            camada_[8].movimiento(1, cubep, window);
+            Sleep(milliseconds);
             updateCamadas_();
         }
     }
@@ -828,7 +643,6 @@ void exeanimation(std::string str, GLFWwindow *window){
 void updateCamadas_(){
     for (int i = 0; i < 9; i++)
     {
-        camada_[i].setIndex(i, cubesID);
+        camada_[i].setIndex(i, cubep);
     }
-
 }

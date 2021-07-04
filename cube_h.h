@@ -9,6 +9,11 @@
 #include <vector>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <chrono>
+
+#define PI 3.14159265
+
+glm::vec4 findCenterCube(float vert[24]);
 
 class Cube{
 public:
@@ -78,7 +83,6 @@ public:
 
     void createbindbuffers(){
 
-
         // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
         glBindVertexArray(VAO);
 
@@ -128,19 +132,17 @@ public:
         glUniform3f(uniColor, 0.0f, 0.5f, 0.0f);
         glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
 
-        glUniform3f(uniColor, 1.0f, 0.0f, 0.0f);
+        glUniform3f(uniColor, 1.0f, 0.7f, 0.0f);
         glDrawElements(GL_TRIANGLES, 18, GL_UNSIGNED_INT, 0);
 
         glUniform3f(uniColor, 0.0f, 0.0f, 1.0f);
         glDrawElements(GL_TRIANGLES, 24, GL_UNSIGNED_INT, 0);
 
-        glUniform3f(uniColor, 1.0f, 0.7f, 0.0f);
+        glUniform3f(uniColor, 1.0f, 0.0f, 0.0f);
         glDrawElements(GL_TRIANGLES, 30, GL_UNSIGNED_INT, 0);
 
         glUniform3f(uniColor, 1.0f, 1.0f, 0.0f);
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-
-
 
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices),vertices,GL_STATIC_DRAW);
@@ -154,6 +156,42 @@ public:
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices),vertices,GL_STATIC_DRAW);
 
     }
+
+    void drawEffect(){
+
+        glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+        float t = glfwGetTime();
+        glUniform3f(uniColor, (0.1f+abs(cos(t))), (0.1f+abs(cos(t))), (0.1f+abs(cos(t))));
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+        glUniform3f(uniColor, 0.0f, (0.1f+abs(cos(t)*0.2f)), 0.0f);
+        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
+
+        glUniform3f(uniColor, (0.1f+abs(cos(t))), (0.1f+abs(cos(t)*0.7f)), 0.0f);
+        glDrawElements(GL_TRIANGLES, 18, GL_UNSIGNED_INT, 0);
+
+        glUniform3f(uniColor, 0.0f, 0.0f, (0.1f+abs(cos(t))));
+        glDrawElements(GL_TRIANGLES, 24, GL_UNSIGNED_INT, 0);
+
+        glUniform3f(uniColor,(0.1f+abs(cos(t))), 0.0f, 0.0f);
+        glDrawElements(GL_TRIANGLES, 30, GL_UNSIGNED_INT, 0);
+
+        glUniform3f(uniColor, (0.1f+abs(cos(t))), (0.1f+abs(cos(t))), 0.0f);
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices),vertices,GL_STATIC_DRAW);
+
+        glBindVertexArray(VAO1);
+
+        glUniform3f(uniColor, 0.0f, 0.0f, 0.0f);
+        glDrawElements(GL_LINES, 36, GL_UNSIGNED_INT, 0);//crear un nuevo indices1
+
+        glBindBuffer(GL_ARRAY_BUFFER, VBO1);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices),vertices,GL_STATIC_DRAW);
+
+    }
+
     void deleteBuffer(){
         glDeleteVertexArrays(1, &VAO);
         glDeleteBuffers(1, &VBO);
@@ -226,10 +264,6 @@ public:
 
 
     void movimiento(int sentido, Cube* cubesp_[27], GLFWwindow* window) {
-
-        float currentFrame = glfwGetTime();
-        deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
         //utilizar glm para las rotaciones, no necesariamente los shaders
         float signo;
         if (sentido)
@@ -237,46 +271,61 @@ public:
         else
             signo = -1.0;
 
-//        for (int i = 0; i < 9; i++) {
-//                for (int j = 0; j < 24; j = j + 3) {
-//                    glm::vec4 vec(camadas[i]->vertices[j], camadas[i]->vertices[j + 1], camadas[i]->vertices[j + 2],1.0f);
-//                    glm::mat4 trans = glm::mat4(1.0f);
-//                    glm::vec3 eje(0.0f, 0.0f, 0.0f);
-//                    eje[ejerotacion[indice]] = 1.0f;
-//                    trans = glm::rotate(trans, glm::radians(signo * 90), eje);
-//                    vec = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f) + trans * vec;
-//                    camadas[i]->vertices[j] = vec[0];
-//                    camadas[i]->vertices[j + 1] = vec[1];
-//                    camadas[i]->vertices[j + 2] = vec[2];
-//                }
-//        }
-
-        float vel = 9.0;
+        float vel = 90.0;
         glfwSetTime(0.0);
         float angle = 90.0 / vel;
-        int count = int(vel);
-        while (count <= 90.0f) {
+        int count = 0;
+        while (count < 90.0f) {
             for (int i = 0; i < 9; i++) {
+                glm::vec4 centerCube= findCenterCube(camadas[i]->vertices);
                 for (int j = 0; j < 24; j = j + 3) {
-                    glm::vec4 vec(camadas[i]->vertices[j], camadas[i]->vertices[j + 1], camadas[i]->vertices[j + 2],
-                                  1.0f);
+                    glm::vec4 vec(camadas[i]->vertices[j], camadas[i]->vertices[j + 1], camadas[i]->vertices[j + 2],1.0f);
+
                     glm::mat4 trans = glm::mat4(1.0f);
                     glm::vec3 eje(0.0f, 0.0f, 0.0f);
                     eje[ejerotacion[indice]] = 1.0f;
 
-                    trans = glm::rotate(trans, glm::radians(signo * angle), eje);
+                    ////Añadiendo animacion
 
-                    vec = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f) + trans * vec;
+                    trans = glm::rotate(glm::mat4(1.0f), glm::radians(signo*4*angle), eje);
+                    vec=centerCube+trans*(vec-centerCube);
+
+                    ////
+
+                    trans = glm::rotate(glm::mat4(1.0f), glm::radians(signo * angle), eje);
+                    vec = trans * vec;
+
+
+                    trans=glm::scale(glm::mat4(1.0f),glm::vec3(
+                            1.0f+sin(glm::radians(float(count*4.1442)))/100,
+                            1.0f+sin(glm::radians(float(count*4.1442)))/100,
+                            1.0f+sin(glm::radians(float(count*4.1442)))/100
+                            ));
+                    vec=trans*vec;
+
+                    ///
+
                     camadas[i]->vertices[j] = vec[0];
                     camadas[i]->vertices[j + 1] = vec[1];
                     camadas[i]->vertices[j + 2] = vec[2];
                 }
-                camadas[i]->drawCube();
+            }
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            for(int k=0;k<27;k++){
+                cubesp_[k]->drawEffect();
             }
             glfwSwapBuffers(window);
+
             count = count + angle;
         }
 
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        for(int k=0;k<27;k++){
+            cubesp_[k]->drawEffect();
+        }
+        glfwSwapBuffers(window);
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 //        x+: horario
 //        x-: anti-horario
@@ -305,8 +354,19 @@ public:
             }
         }
     }
-
 };
 
 
+glm::vec4 findCenterCube(float vert[24]){
+    float x=0,y=0,z=0;
+    for(int i=0;i<24;i=i+3){
+        x+=vert[i];
+        y+=vert[i+1];
+        z+=vert[i+2];
+    }
+    x=x/8;
+    y=y/8;
+    z=z/8;
+    return glm::vec4(x,y,z,0.0f);
+}
 #endif //GLFW_GLAD_GLUT_GLEW_CMAKE_PROJECT_CUBE_H_H
