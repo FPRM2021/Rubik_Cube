@@ -17,6 +17,6 @@ Para utilizar el solver:
     Presionar 'Z' para desordenar el cubo con movimientos aleatorios.
     
     
-El siguiente es un enlace para ver un video de la demostración del código funcionando:
+RubikCube 2021-07-05 21-39-01.mp4
 
     
