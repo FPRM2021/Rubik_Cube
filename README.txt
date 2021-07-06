@@ -15,3 +15,8 @@ Para utilizar el solver:
     Presionar 'X' para resolver el cubo.
 
     Presionar 'Z' para desordenar el cubo con movimientos aleatorios.
+    
+    
+El siguiente es un enlace para ver un video de la demostración del código funcionando:
+
+    https://drive.google.com/file/d/1AmvplFOfFIe5z8JTu6UpewgR5hSZIRKu/view?usp=sharing
